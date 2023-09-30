@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sudoku Solver</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        td {
+            border: 1px solid black;
+            width: 30px;
+            height: 30px;
+            text-align: center;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sudoku Solver</h1>
+    <form id="sudokuForm">
+        <table>
+            <tbody>
+                <!-- Create a 9x9 grid of input cells -->
+                {% for i in "123456789" %}
+                    <tr>
+                        {% for i in "123456789" %}
+                            <td>
+                                <input type="number" min="1" max="9" name="cell{{ i }}{{ j }}">
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <br>
+        <button type="submit">SOLVE!</button>
+    </form>
+
+    <div id="solution"></div>
+
+    <script>
+        document.getElementById('sudokuForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            solveSudoku();
+        });
+
+        function solveSudoku() {
+            const formData = new FormData(document.getElementById('sudokuForm'));
+            const board = [];
+            for (let i = 0; i < 9; i++) {
+                const row = [];
+                for (let j = 0; j < 9; j++) {
+                    const cellValue = parseInt(formData.get(`cell${i}${j}`)) || 0;
+                    row.push(cellValue);
+                }
+                board.push(row);
+            }
+
+            fetch('/solver/solve_sudoku_api/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(board)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.solution) {
+                    const solutionTable = document.createElement('table');
+                    const tbody = document.createElement('tbody');
+                    for (let i = 0; i < 9; i++) {
+                        const row = document.createElement('tr');
+                        for (let j = 0; j < 9; j++) {
+                            const cell = document.createElement('td');
+                            cell.innerText = data.solution[i][j];
+                            row.appendChild(cell);
+                        }
+                        tbody.appendChild(row);
+                    }
+                    solutionTable.appendChild(tbody);
+                    document.getElementById('solution').innerHTML = '';
+                    document.getElementById('solution').appendChild(solutionTable);
+                } else {
+                    document.getElementById('solution').innerText = 'No solution';
+                }
+            });
+        }
+
+        function getCookie(name) {
+            const cookieValue = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+            return cookieValue ? cookieValue[2] : null;
+        }
+    </script>
+</body>
+</html>
